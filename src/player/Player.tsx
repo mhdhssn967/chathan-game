@@ -4,7 +4,7 @@ import { CapsuleCollider, RigidBody, RapierRigidBody } from '@react-three/rapier
 import { useAnimations, useGLTF, useKeyboardControls } from '@react-three/drei';
 import * as THREE from 'three';
 
-const OrbComponent = ({ bodyRef, direction, onComplete }: { bodyRef: React.RefObject<RapierRigidBody>, direction: number, onComplete: () => void }) => {
+const OrbComponent = ({ bodyRef, direction, onComplete }: { bodyRef: React.RefObject<RapierRigidBody | null>, direction: number, onComplete: () => void }) => {
   const groupRef = useRef<THREE.Group>(null);
   const outerRef = useRef<THREE.Mesh>(null);
   const stateRef = useRef<'charging' | 'shooting'>('charging');
@@ -270,7 +270,6 @@ export default function Player() {
       }, duration * 1000);
     }
     
-    // Smoothly transition speed for walk vs run
     const targetSpeed = run ? 4.55 : 1.8;
     currentSpeed.current = THREE.MathUtils.lerp(currentSpeed.current, targetSpeed, 0.1);
     
@@ -289,6 +288,16 @@ export default function Player() {
       isNormalJumping.current = !run;
       const targetAnim = run ? runJumpAnimName : jumpAnimName;
       if (targetAnim) setCurrentAnim(targetAnim);
+      
+      if (run) {
+        bodyRef.current.applyImpulse({ x: 0, y: jumpForce * 1.2, z: 0 }, true);
+      } else {
+        setTimeout(() => {
+          if (bodyRef.current) {
+            bodyRef.current.applyImpulse({ x: 0, y: jumpForce, z: 0 }, true);
+          }
+        }, 700);
+      }
       
       const duration = actions[targetAnim || '']?.getClip().duration || 1;
       setTimeout(() => {
