@@ -1,4 +1,4 @@
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Physics } from '@react-three/rapier';
 import { Leva } from 'leva';
@@ -6,28 +6,71 @@ import { KeyboardControls, Loader } from '@react-three/drei';
 import Scene from './game/Scene';
 
 function App() {
+  const [hasStarted, setHasStarted] = useState(false);
+
   useEffect(() => {
     const audio = new Audio('/sounds/bgm.mp3');
     audio.loop = true;
     audio.volume = 0.4;
-    
-    const playAudio = () => {
-      audio.play().catch(e => console.warn("Audio autoplay blocked:", e));
-    };
-    
-    // Play on first interaction to avoid browser autoplay restrictions
-    window.addEventListener('click', playAudio, { once: true });
-    window.addEventListener('keydown', playAudio, { once: true });
+    (window as any).bgmAudio = audio;
     
     return () => {
       audio.pause();
-      window.removeEventListener('click', playAudio);
-      window.removeEventListener('keydown', playAudio);
     };
   }, []);
 
+  const handleStart = async () => {
+    if (hasStarted) return;
+    
+    try {
+      if (document.documentElement.requestFullscreen) {
+        await document.documentElement.requestFullscreen();
+      } else if ((document.documentElement as any).webkitRequestFullscreen) {
+        await (document.documentElement as any).webkitRequestFullscreen();
+      }
+    } catch (e) {
+      console.warn("Fullscreen request failed", e);
+    }
+    
+    setHasStarted(true);
+    (window as any).gameStarted = true;
+    window.dispatchEvent(new Event('game-start'));
+    
+    if ((window as any).bgmAudio) {
+      (window as any).bgmAudio.play().catch((e: any) => console.warn("Audio play blocked:", e));
+    }
+  };
+
   return (
     <>
+      {!hasStarted && (
+        <div 
+          onClick={handleStart}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+          }}
+        >
+          <span style={{ 
+            transform: 'translateY(35vh)', 
+            color: 'rgba(255, 255, 255, 0.5)', 
+            fontFamily: '"Georgia", "Times New Roman", serif', 
+            fontSize: '0.85rem', 
+            letterSpacing: '0.15em', 
+            fontStyle: 'italic'
+          }}>
+            click anywhere to start
+          </span>
+        </div>
+      )}
       <Leva collapsed />
       <KeyboardControls
         map={[
@@ -51,7 +94,7 @@ function App() {
         }}
         dpr={[1, 2]}
       >
-        <color attach="background" args={['#354266']} />
+
         
         <Suspense fallback={null}>
           <Physics timeStep="vary">

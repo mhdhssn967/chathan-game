@@ -81,10 +81,12 @@ export default function Theyyam() {
       const theyyamPos = new THREE.Vector3();
       groupRef.current.getWorldPosition(theyyamPos);
       
-      if (headBoneRef.current && !isRunningAway.current && !isCrawlingBack.current) {
-        const headTarget = playerPos.clone();
-        headTarget.y += 3; 
-        headBoneRef.current.lookAt(headTarget);
+      if (headBoneRef.current) {
+        if (!isRunningAway.current && !isCrawlingBack.current) {
+          const headTarget = playerPos.clone();
+          headTarget.y += 3; 
+          headBoneRef.current.lookAt(headTarget);
+        }
       }
       
       if (!hasJumpScared.current) {

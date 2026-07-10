@@ -115,9 +115,20 @@ export default function Player() {
   }, [names]);
 
   const [currentAnim, setCurrentAnim] = useState<string | null>(wakeAnimName || idleAnimNames[0] || null);
+  const [hasStarted, setHasStarted] = useState(false);
 
   useEffect(() => {
+    const handleStart = () => setHasStarted(true);
+    window.addEventListener('game-start', handleStart);
+    if ((window as any).gameStarted) setHasStarted(true);
+    return () => window.removeEventListener('game-start', handleStart);
+  }, []);
+
+  useEffect(() => {
+    if (!hasStarted) return;
+    
     if (wakeAnimName && actions[wakeAnimName]) {
+      actions[wakeAnimName].paused = false;
       const duration = actions[wakeAnimName].getClip().duration;
       const timeout = setTimeout(() => {
         isWaking.current = false;
@@ -127,7 +138,7 @@ export default function Player() {
     } else {
       isWaking.current = false;
     }
-  }, [wakeAnimName, actions, idleAnimNames]);
+  }, [hasStarted, wakeAnimName, actions, idleAnimNames]);
 
   useEffect(() => {
     // Enable shadows on the loaded model
@@ -186,6 +197,11 @@ export default function Player() {
       
       // Play current animation
       action.reset().fadeIn(0.5).play();
+
+      if (currentAnim === wakeAnimName && !hasStarted) {
+        action.paused = true;
+        action.time = 0.1; // Hold at ~3rd frame
+      }
     }
     
     return () => {
@@ -235,7 +251,7 @@ export default function Player() {
       }, duration * 1000);
     }
     
-    if (isDead.current || isWaking.current) {
+    if (isDead.current || isWaking.current || !hasStarted) {
       const velocity = bodyRef.current.linvel();
       bodyRef.current.setLinvel({ x: 0, y: velocity.y, z: 0 }, true);
       return;
